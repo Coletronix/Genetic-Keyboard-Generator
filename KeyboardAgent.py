@@ -112,8 +112,8 @@ class KeyboardAgent:
                            [9.25,1],
                            ]
         
-        pFingerNum = None
-        ppFingerNum = None
+        pFingerNum = 0
+        ppFingerNum = 0
         
         # special keys that I would like to be in the same place
         # if self.keymap['c'][0] != 2.75 or self.keymap['c'][1] != 2:
@@ -148,7 +148,7 @@ class KeyboardAgent:
                 elif (fingerNumber >= 6):
                     fingerNumber -= 2
                 
-                previousFingerPos = fingerPositions[fingerNumber]
+                previousFingerPos = fingerPositions[pFingerNum]
                 # distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
                 distance = keyDistances[(keyPos[0], keyPos[1], previousFingerPos[0], previousFingerPos[1])]
                 self.fitness += .5/distance if distance != 0 else 2
@@ -188,12 +188,12 @@ class KeyboardAgent:
                     
                 # penalize a lot if the same finger is used twice in a row
                 if (fingerNumber == pFingerNum):
-                    self.fitness -= 5
+                    self.fitness -= 10
                     
                 # non alphabet keys should be on the right pinky
-                if not ordBetween:
-                    if fingerNumber == 7:
-                        self.fitness += 1
+                # if not ordBetween:
+                #     if fingerNumber == 7:
+                #         self.fitness += 1
                         
                 # penalize a small amount if in the middle column
                 if keyPos[0] >= 4 and keyPos[0] < 6:
