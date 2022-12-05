@@ -103,9 +103,25 @@ def main():
     screen = pygame.display.set_mode((540, 150))
     clock = pygame.time.Clock()
     
+    ga = GeneticAlgorithm(generationSize, initialMutationRate, 3, trainingData=trainingData)
+    qwerty = KeyboardAgent(True, trainingData=trainingData)
+    dvorak = KeyboardAgent(True, trainingData=trainingData)
+    workman = KeyboardAgent(True, trainingData=trainingData)
+    special = KeyboardAgent(True, trainingData=trainingData)
+    qwerty.keymap = json.loads(loadFile("keyboardLayouts/qwertyLayout.json"))
+    dvorak.keymap = json.loads(loadFile("keyboardLayouts/dvorakLayout.json"))
+    workman.keymap = json.loads(loadFile("keyboardLayouts/workmanLayout.json"))
+    special.keymap = json.loads(loadFile("keyboardLayouts/layoutChoice1.json"))
+    qwerty.calculateFitness()
+    dvorak.calculateFitness()
+    workman.calculateFitness()
+    special.calculateFitness()
+    
+    numTimesEachKeyPressedBest = qwerty.getNumTimesEachKeyPressed()
+    maxNumTimesKeyPressed = max(numTimesEachKeyPressedBest.values())
+    
     stopAlgorithm = False
     
-    ga = GeneticAlgorithm(generationSize, initialMutationRate, 3, trainingData=trainingData)
     for i in range(tournamentSize):
         if i % swapTrainingDataEvery == 0:
             trainingData = random.choice(trainingDataOptions)
@@ -134,8 +150,10 @@ def main():
                     f.write(json.dumps(ga.getBestAgent().keymap))
         
         for (key, position) in ga.getBestAgent().keymap.items():
+            heatValue = 255 * numTimesEachKeyPressedBest[key]/maxNumTimesKeyPressed # from 0 to 255
+            color = (heatValue, .5 * (255-heatValue), 0)
             rect = pygame.Rect(position[0] * keySize, position[1] * keySize, keySize, keySize)
-            pygame.draw.rect(screen, (255,255,255), rect)
+            pygame.draw.rect(screen, color, rect)
             # text of each key on top of each rect
             text = font.render(key.upper(), True, (0, 0, 0))
             screen.blit(text, text.get_rect(center=rect.center))
@@ -146,23 +164,11 @@ def main():
             break
     
     # test the efficiency of some known layouts
-    qwerty = KeyboardAgent(True, trainingData=trainingData)
-    dvorak = KeyboardAgent(True, trainingData=trainingData)
-    workman = KeyboardAgent(True, trainingData=trainingData)
-    special = KeyboardAgent(True, trainingData=trainingData)
-    qwerty.keymap = json.loads(loadFile("keyboardLayouts/qwertyLayout.json"))
-    dvorak.keymap = json.loads(loadFile("keyboardLayouts/dvorakLayout.json"))
-    workman.keymap = json.loads(loadFile("keyboardLayouts/workmanLayout.json"))
-    special.keymap = json.loads(loadFile("keyboardLayouts/layoutChoice1.json"))
-    qwerty.calculateFitness()
-    dvorak.calculateFitness()
-    workman.calculateFitness()
-    special.calculateFitness()
     print("QWERTY Fitness:", qwerty.fitness, "Back and Forthness:", qwerty.getBackAndForthness(), "Finger Usage: ", qwerty.getNumTimesEachFingerUsed())
     print("Dvorak Fitness:", dvorak.fitness, "Back and Forthness:", dvorak.getBackAndForthness(), "Finger Usage: ", dvorak.getNumTimesEachFingerUsed())
     print("Workman Fitness:", workman.fitness, "Back and Forthness:", workman.getBackAndForthness(), "Finger Usage: ", workman.getNumTimesEachFingerUsed())
     print("Special Fitness:", special.fitness, "Back and Forthness:", special.getBackAndForthness(), "Finger Usage: ", special.getNumTimesEachFingerUsed())
-    print("Best Fitness:", ga.getBestAgent().fitness, "Back and Forthness:", qwerty.getBackAndForthness(), "Finger Usage: ", ga.getBestAgent().getNumTimesEachFingerUsed())
+    print("Best Fitness:", ga.getBestAgent().fitness, "Back and Forthness:", ga.getBestAgent().getBackAndForthness(), "Finger Usage: ", ga.getBestAgent().getNumTimesEachFingerUsed())
     
     # show the best agent with pygame
     chosenAgent = ga.getBestAgent()
