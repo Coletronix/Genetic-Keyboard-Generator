@@ -148,7 +148,7 @@ class KeyboardAgent:
                 elif (fingerNumber >= 6):
                     fingerNumber -= 2
                 
-                previousFingerPos = fingerPositions[pFingerNum]
+                previousFingerPos = fingerPositions[fingerNumber]
                 # distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
                 distance = keyDistances[(keyPos[0], keyPos[1], previousFingerPos[0], previousFingerPos[1])]
                 self.fitness += .5/distance if distance != 0 else 2
