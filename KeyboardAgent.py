@@ -6,6 +6,14 @@ import math
 def swapKeyPos(keyA, keyB, dict):
     dict[keyA], dict[keyB] = dict[keyB], dict[keyA]
 
+keyDistances = dict()
+
+def precalculateKeyDistances(agent):
+    global keyDistances
+    for (keyA, posA) in agent.keymap.items():
+        for (keyB, posB) in agent.keymap.items():
+            keyDistances[(posA[0], posA[1], posB[0], posB[1])] = math.sqrt((posA[0] - posB[0]) ** 2 + (posA[1] - posB[1]) ** 2)
+
 class KeyboardAgent:
     def __init__(self, empty=False, trainingData=''):
         # create a random keymapping.
@@ -108,22 +116,22 @@ class KeyboardAgent:
         ppFingerNum = None
         
         # special keys that I would like to be in the same place
-        if self.keymap['c'][0] != 2.75 or self.keymap['c'][1] != 2:
-            return # force position of a
-        elif self.keymap['v'][0] != 3.75 or self.keymap['v'][1] != 2:
-            self.fitness += 1
-            return # force position of v
-        elif self.keymap['x'][0] != 1.75 or self.keymap['x'][1] != 2:
-            self.fitness += 2
-            return # force position of x
-        elif self.keymap['z'][0] != 0.75 or self.keymap['z'][1] != 2: 
-            self.fitness += 3
-            return # force position of z
-        elif self.keymap['a'][0] != 0.25 or self.keymap['a'][1] != 1:
-            self.fitness += 4
-            return # force position of a
-        else:
-            self.fitness += 5
+        # if self.keymap['c'][0] != 2.75 or self.keymap['c'][1] != 2:
+        #     return # force position of a
+        # elif self.keymap['v'][0] != 3.75 or self.keymap['v'][1] != 2:
+        #     self.fitness += 1
+        #     return # force position of v
+        # elif self.keymap['x'][0] != 1.75 or self.keymap['x'][1] != 2:
+        #     self.fitness += 2
+        #     return # force position of x
+        # elif self.keymap['z'][0] != 0.75 or self.keymap['z'][1] != 2: 
+        #     self.fitness += 3
+        #     return # force position of z
+        # elif self.keymap['a'][0] != 0.25 or self.keymap['a'][1] != 1:
+        #     self.fitness += 4
+        #     return # force position of a
+        # else:
+        #     self.fitness += 5
         
         for i in range(1, len(self.trainingData)):
             key = self.trainingData[i]
@@ -141,7 +149,8 @@ class KeyboardAgent:
                     fingerNumber -= 2
                 
                 previousFingerPos = fingerPositions[fingerNumber]
-                distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
+                # distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
+                distance = keyDistances[(keyPos[0], keyPos[1], previousFingerPos[0], previousFingerPos[1])]
                 self.fitness += .5/distance if distance != 0 else 2
                 
                 # extra point if the key is in the home row, .5 if it is in the top row
@@ -152,11 +161,11 @@ class KeyboardAgent:
                     
                 # more points for stronger fingers (index, middle, ring)
                 if fingerNumber == 3 or fingerNumber == 4: # index
-                    self.fitness += 1*2
+                    self.fitness += 1
                 elif fingerNumber == 2 or fingerNumber == 5: # middle
-                    self.fitness += .75*2
+                    self.fitness += .75
                 elif fingerNumber == 1 or fingerNumber == 6: # ring
-                    self.fitness += .5*2
+                    self.fitness += .5
                     
                 # optimize back and forth between hands
                 rightHandKey = self.keymap[key][0] > 4.8
@@ -177,9 +186,9 @@ class KeyboardAgent:
                         if (rightHandKey and fingerNumber == pFingerNum -1) or (not rightHandKey and fingerNumber == pFingerNum +1):
                             self.fitness += 1 # reward for going towards the center of the keyboard
                     
-                # penalize if the same finger is used twice in a row
+                # penalize a lot if the same finger is used twice in a row
                 if (fingerNumber == pFingerNum):
-                    self.fitness -= 1
+                    self.fitness -= 5
                     
                 # non alphabet keys should be on the right pinky
                 if not ordBetween:
@@ -305,6 +314,20 @@ class KeyboardAgent:
                 else:
                     numTimesEachKeyPressed[key] = 1
         return numTimesEachKeyPressed
+    
+    def getBackAndForthness(self):
+        previouslyRightHandKey = False
+        alternationCount = 0
+        for i in range(0, len(self.trainingData)):
+            key = self.trainingData[i]
+            ordBetween = (ord(key) >= 97 and ord(key) <= 122)
+            if ordBetween or key == ',' or key == '.' or key == '/':
+                rightHandKey = self.keymap[key][0] > 4.8
+                if (rightHandKey != previouslyRightHandKey):
+                    alternationCount += 1
+                previouslyRightHandKey = rightHandKey
+        
+        return alternationCount/len(self.trainingData)
     
     def __lt__(self, other):
          return self.fitness < other.fitness # for sorting

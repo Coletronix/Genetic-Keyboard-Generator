@@ -1,5 +1,5 @@
 import random
-from KeyboardAgent import KeyboardAgent
+from KeyboardAgent import KeyboardAgent, precalculateKeyDistances
 import json
 import pygame
 import os
@@ -16,6 +16,7 @@ class GeneticAlgorithm:
         self.bestAgent = None
         self.previousBestFitness = 0
         self.population = []
+        precalculateKeyDistances(KeyboardAgent(False, trainingData))
         for _ in range(populationSize):
             test = KeyboardAgent(False, trainingData)
             self.population.append(test)
@@ -157,11 +158,11 @@ def main():
     dvorak.calculateFitness()
     workman.calculateFitness()
     special.calculateFitness()
-    print("QWERTY Fitness:", qwerty.fitness, "Finger Usage: ", qwerty.getNumTimesEachFingerUsed())
-    print("Dvorak Fitness:", dvorak.fitness, "Finger Usage: ", dvorak.getNumTimesEachFingerUsed())
-    print("Workman Fitness:", workman.fitness, "Finger Usage: ", workman.getNumTimesEachFingerUsed())
-    print("Special Fitness:", special.fitness, "Finger Usage: ", special.getNumTimesEachFingerUsed())
-    print("Best Fitness:", ga.getBestAgent().fitness, "Finger Usage: ", ga.getBestAgent().getNumTimesEachFingerUsed())
+    print("QWERTY Fitness:", qwerty.fitness, "Back and Forthness:", qwerty.getBackAndForthness(), "Finger Usage: ", qwerty.getNumTimesEachFingerUsed())
+    print("Dvorak Fitness:", dvorak.fitness, "Back and Forthness:", dvorak.getBackAndForthness(), "Finger Usage: ", dvorak.getNumTimesEachFingerUsed())
+    print("Workman Fitness:", workman.fitness, "Back and Forthness:", workman.getBackAndForthness(), "Finger Usage: ", workman.getNumTimesEachFingerUsed())
+    print("Special Fitness:", special.fitness, "Back and Forthness:", special.getBackAndForthness(), "Finger Usage: ", special.getNumTimesEachFingerUsed())
+    print("Best Fitness:", ga.getBestAgent().fitness, "Back and Forthness:", qwerty.getBackAndForthness(), "Finger Usage: ", ga.getBestAgent().getNumTimesEachFingerUsed())
     
     # show the best agent with pygame
     chosenAgent = ga.getBestAgent()
