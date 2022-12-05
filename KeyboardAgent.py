@@ -6,6 +6,9 @@ import math
 def swapKeyPos(keyA, keyB, dict):
     dict[keyA], dict[keyB] = dict[keyB], dict[keyA]
 
+singleKeyFreqs = dict()
+bigramFreqs = dict()
+trigramFreqs = dict()
 keyDistances = dict()
 
 def precalculateKeyDistances(agent):
@@ -13,6 +16,48 @@ def precalculateKeyDistances(agent):
     for (keyA, posA) in agent.keymap.items():
         for (keyB, posB) in agent.keymap.items():
             keyDistances[(posA[0], posA[1], posB[0], posB[1])] = math.sqrt((posA[0] - posB[0]) ** 2 + (posA[1] - posB[1]) ** 2)
+
+def precalculateSingleKeyFreqs(agent):
+    global singleKeyFreqs
+    for i in range(len(agent.trainingData)):
+        key = agent.trainingData[i]
+        if key == ' ':
+            continue
+        if key in singleKeyFreqs.keys():
+            singleKeyFreqs[key] += 1
+        else:
+            singleKeyFreqs[key] = 1
+    # normalize
+    for key in singleKeyFreqs.keys():
+        singleKeyFreqs[key] /= len(agent.trainingData)
+        
+def precalculateBigramFreqs(agent):
+    global bigramFreqs
+    for i in range(len(agent.trainingData) - 1):
+        bigram = agent.trainingData[i:i+2]
+        if bigram[0] == ' ' or bigram[1] == ' ':
+            continue
+        if bigram in bigramFreqs.keys():
+            bigramFreqs[bigram] += 1
+        else:
+            bigramFreqs[bigram] = 1
+    # normalize
+    for bigram in bigramFreqs.keys():
+        bigramFreqs[bigram] /= (len(agent.trainingData) - 1)
+
+def precalculateTrigramFreqs(agent):
+    global trigramFreqs
+    for i in range(len(agent.trainingData) - 2):
+        trigram = agent.trainingData[i:i+3]
+        if trigram[0] == ' ' or trigram[1] == ' ' or trigram[2] == ' ':
+            continue
+        if trigram in trigramFreqs.keys():
+            trigramFreqs[trigram] += 1
+        else:
+            trigramFreqs[trigram] = 1
+    # normalize
+    for trigram in trigramFreqs.keys():
+        trigramFreqs[trigram] /= (len(agent.trainingData) - 2)
 
 class KeyboardAgent:
     def __init__(self, empty=False, trainingData=''):
@@ -24,6 +69,11 @@ class KeyboardAgent:
         self.trainingData = trainingData
         
         if not empty:
+            if len(bigramFreqs.keys()) == 0:
+                precalculateSingleKeyFreqs(self)
+                precalculateBigramFreqs(self)
+                precalculateTrigramFreqs(self)
+                print(sorted(trigramFreqs.items(), key=lambda x: x[1], reverse=True))
             # begin with standard staggered qwerty layout
             self.keymap = {
                 'q' : (0, 0),
@@ -92,117 +142,117 @@ class KeyboardAgent:
         
         return child
     
-    '''
-    Calculate the fitness of this agent.
-    Emphasis is placed on having important keys in the homerow, alternating between hands, and having the most common keys in the most common positions.
-    It also focuses on key distance.
-    '''
-    def calculateFitness(self):
-        self.fitness = 0.0
+    # '''
+    # Calculate the fitness of this agent.
+    # Emphasis is placed on having important keys in the homerow, alternating between hands, and having the most common keys in the most common positions.
+    # It also focuses on key distance.
+    # '''
+    # def calculateFitness(self):
+    #     self.fitness = 0.0
         
-        previouslyRightHandKey = self.keymap[self.trainingData[0]][0] > 4.8
+    #     previouslyRightHandKey = self.keymap[self.trainingData[0]][0] > 4.8
         
-        fingerPositions = [[.25, 1],
-                           [1.25,1],
-                           [2.25,1],
-                           [3.25,1],
-                           [6.25,1],
-                           [7.25,1],
-                           [8.25,1],
-                           [9.25,1],
-                           ]
+    #     fingerPositions = [[.25, 1],
+    #                        [1.25,1],
+    #                        [2.25,1],
+    #                        [3.25,1],
+    #                        [6.25,1],
+    #                        [7.25,1],
+    #                        [8.25,1],
+    #                        [9.25,1],
+    #                        ]
         
-        pFingerNum = 0
-        ppFingerNum = 0
+    #     pFingerNum = 0
+    #     ppFingerNum = 0
         
-        # special keys that I would like to be in the same place
-        # if self.keymap['c'][0] != 2.75 or self.keymap['c'][1] != 2:
-        #     return # force position of a
-        # elif self.keymap['v'][0] != 3.75 or self.keymap['v'][1] != 2:
-        #     self.fitness += 1
-        #     return # force position of v
-        # elif self.keymap['x'][0] != 1.75 or self.keymap['x'][1] != 2:
-        #     self.fitness += 2
-        #     return # force position of x
-        # elif self.keymap['z'][0] != 0.75 or self.keymap['z'][1] != 2: 
-        #     self.fitness += 3
-        #     return # force position of z
-        # elif self.keymap['a'][0] != 0.25 or self.keymap['a'][1] != 1:
-        #     self.fitness += 4
-        #     return # force position of a
-        # else:
-        #     self.fitness += 5
+    #     # special keys that I would like to be in the same place
+    #     # if self.keymap['c'][0] != 2.75 or self.keymap['c'][1] != 2:
+    #     #     return # force position of a
+    #     # elif self.keymap['v'][0] != 3.75 or self.keymap['v'][1] != 2:
+    #     #     self.fitness += 1
+    #     #     return # force position of v
+    #     # elif self.keymap['x'][0] != 1.75 or self.keymap['x'][1] != 2:
+    #     #     self.fitness += 2
+    #     #     return # force position of x
+    #     # elif self.keymap['z'][0] != 0.75 or self.keymap['z'][1] != 2: 
+    #     #     self.fitness += 3
+    #     #     return # force position of z
+    #     # elif self.keymap['a'][0] != 0.25 or self.keymap['a'][1] != 1:
+    #     #     self.fitness += 4
+    #     #     return # force position of a
+    #     # else:
+    #     #     self.fitness += 5
         
-        for i in range(1, len(self.trainingData)):
-            key = self.trainingData[i]
+    #     for i in range(1, len(self.trainingData)):
+    #         key = self.trainingData[i]
             
-            ordBetween = (ord(key) >= 97 and ord(key) <= 122)
-            if ordBetween or key == ',' or key == '.' or key == '/':                                
-                # optimize keys to minimize distance
-                keyPos = self.keymap[key]
-                fingerNumber = math.floor(keyPos[0])
-                if (fingerNumber == 4):
-                    fingerNumber -= 1
-                elif (fingerNumber == 5):
-                    fingerNumber -= 1
-                elif (fingerNumber >= 6):
-                    fingerNumber -= 2
+    #         ordBetween = (ord(key) >= 97 and ord(key) <= 122)
+    #         if ordBetween or key == ',' or key == '.' or key == '/':                                
+    #             # optimize keys to minimize distance
+    #             keyPos = self.keymap[key]
+    #             fingerNumber = math.floor(keyPos[0])
+    #             if (fingerNumber == 4):
+    #                 fingerNumber -= 1
+    #             elif (fingerNumber == 5):
+    #                 fingerNumber -= 1
+    #             elif (fingerNumber >= 6):
+    #                 fingerNumber -= 2
                 
-                previousFingerPos = fingerPositions[fingerNumber]
-                # distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
-                distance = keyDistances[(keyPos[0], keyPos[1], previousFingerPos[0], previousFingerPos[1])]
-                self.fitness += .5/distance if distance != 0 else 2
+    #             previousFingerPos = fingerPositions[fingerNumber]
+    #             # distance = (keyPos[0] - previousFingerPos[0])**2 + (keyPos[1] - previousFingerPos[1])**2
+    #             distance = keyDistances[(keyPos[0], keyPos[1], previousFingerPos[0], previousFingerPos[1])]
+    #             self.fitness += .5/distance if distance != 0 else 2
                 
-                # extra point if the key is in the home row, .5 if it is in the top row
-                if (keyPos[1] == 1):
-                    self.fitness += 1
-                elif (keyPos[1] == 0):
-                    self.fitness += .5
+    #             # extra point if the key is in the home row, .5 if it is in the top row
+    #             if (keyPos[1] == 1):
+    #                 self.fitness += 1
+    #             elif (keyPos[1] == 0):
+    #                 self.fitness += .5
                     
-                # more points for stronger fingers (index, middle, ring)
-                if fingerNumber == 3 or fingerNumber == 4: # index
-                    self.fitness += 1
-                elif fingerNumber == 2 or fingerNumber == 5: # middle
-                    self.fitness += .75
-                elif fingerNumber == 1 or fingerNumber == 6: # ring
-                    self.fitness += .5
+    #             # more points for stronger fingers (index, middle, ring)
+    #             if fingerNumber == 3 or fingerNumber == 4: # index
+    #                 self.fitness += 1
+    #             elif fingerNumber == 2 or fingerNumber == 5: # middle
+    #                 self.fitness += .75
+    #             elif fingerNumber == 1 or fingerNumber == 6: # ring
+    #                 self.fitness += .5
                     
-                # optimize back and forth between hands
-                rightHandKey = self.keymap[key][0] > 4.8
-                if (rightHandKey != previouslyRightHandKey):
-                    self.fitness += 3
-                else:
-                    # optimize same hand finger order
-                    # penalize if finger order is not in one direction (eg. 1,2,3, not 1,3,2)
-                    if ppFingerNum != None:
-                        if (pFingerNum < ppFingerNum and fingerNumber > pFingerNum) or (pFingerNum > ppFingerNum and fingerNumber < pFingerNum):
-                            self.fitness -= 2 # penalize
-                        else:
-                            self.fitness += 1 # reward
-                            # additional reward if the finger order going towards the center of the keyboard
-                            if (pFingerNum == ppFingerNum+1 and fingerNumber == pFingerNum+1 and fingerNumber <= 3) or (pFingerNum == ppFingerNum-1 and fingerNumber == pFingerNum-1 and fingerNumber >= 4):
-                                self.fitness += 1
+    #             # optimize back and forth between hands
+    #             rightHandKey = self.keymap[key][0] > 4.8
+    #             if (rightHandKey != previouslyRightHandKey):
+    #                 self.fitness += 3
+    #             else:
+    #                 # optimize same hand finger order
+    #                 # penalize if finger order is not in one direction (eg. 1,2,3, not 1,3,2)
+    #                 if ppFingerNum != None:
+    #                     if (pFingerNum < ppFingerNum and fingerNumber > pFingerNum) or (pFingerNum > ppFingerNum and fingerNumber < pFingerNum):
+    #                         self.fitness -= 2 # penalize
+    #                     else:
+    #                         self.fitness += 1 # reward
+    #                         # additional reward if the finger order going towards the center of the keyboard
+    #                         if (pFingerNum == ppFingerNum+1 and fingerNumber == pFingerNum+1 and fingerNumber <= 3) or (pFingerNum == ppFingerNum-1 and fingerNumber == pFingerNum-1 and fingerNumber >= 4):
+    #                             self.fitness += 1
                     
-                        if (rightHandKey and fingerNumber == pFingerNum -1) or (not rightHandKey and fingerNumber == pFingerNum +1):
-                            self.fitness += 1 # reward for going towards the center of the keyboard
+    #                     if (rightHandKey and fingerNumber == pFingerNum -1) or (not rightHandKey and fingerNumber == pFingerNum +1):
+    #                         self.fitness += 1 # reward for going towards the center of the keyboard
                     
-                # penalize a lot if the same finger is used twice in a row
-                if (fingerNumber == pFingerNum):
-                    self.fitness -= 10
+    #             # penalize a lot if the same finger is used twice in a row
+    #             if (fingerNumber == pFingerNum):
+    #                 self.fitness -= 10
                     
-                # non alphabet keys should be on the right pinky
-                # if not ordBetween:
-                #     if fingerNumber == 7:
-                #         self.fitness += 1
+    #             # non alphabet keys should be on the right pinky
+    #             # if not ordBetween:
+    #             #     if fingerNumber == 7:
+    #             #         self.fitness += 1
                         
-                # penalize a small amount if in the middle column
-                if keyPos[0] >= 4 and keyPos[0] < 6:
-                    self.fitness -= .5
+    #             # penalize a small amount if in the middle column
+    #             if keyPos[0] >= 4 and keyPos[0] < 6:
+    #                 self.fitness -= .5
                         
-                previouslyRightHandKey = rightHandKey
-                fingerPositions[fingerNumber] = keyPos
-                ppFingerNum = pFingerNum
-                pFingerNum = fingerNumber
+    #             previouslyRightHandKey = rightHandKey
+    #             fingerPositions[fingerNumber] = keyPos
+    #             ppFingerNum = pFingerNum
+    #             pFingerNum = fingerNumber
     
     '''
     Calculate the fitness of this agent.
@@ -275,7 +325,124 @@ class KeyboardAgent:
                 
                 
     #             pKey = key
+    
+    '''
+    Calculate the fitness of this agent.
+    Emphasis is placed on having bigrams and trigrams in easy to type positions.
+    '''
+    def calculateFitness(self):
+        self.fitness = 0.0
+        singleKeyFitness = 0.0
+        bigramFitness = 0.0
+        trigramFitness = 0.0
+        for (key, frequency) in singleKeyFreqs.items():
+            keyPos = self.keymap[key]
+            fingerNumber = math.floor(keyPos[0])
+            if (fingerNumber == 4):
+                fingerNumber -= 1
+            elif (fingerNumber == 5):
+                fingerNumber -= 1
+            elif (fingerNumber >= 6):
+                fingerNumber -= 2
+            
+            # extra point if the key is in the home row, .5 if it is in the top row
+            if (keyPos[1] == 1):
+                singleKeyFitness += frequency
+            elif (keyPos[1] == 0):
+                singleKeyFitness += frequency / 2.0
                 
+            # more points for stronger fingers (index, middle, ring)
+            if fingerNumber == 3 or fingerNumber == 4: # index
+                singleKeyFitness += frequency
+            elif fingerNumber == 2 or fingerNumber == 5: # middle
+                singleKeyFitness += 0.75 * frequency
+            elif fingerNumber == 1 or fingerNumber == 6: # ring
+                singleKeyFitness += 0.5 * frequency
+                
+            # penalize for using the center column
+            if keyPos[0] >= 4 and keyPos[0] < 6:
+                singleKeyFitness -= .5 * frequency
+                
+        for (bigram, frequency) in bigramFreqs.items():
+            key1Pos = self.keymap[bigram[0]]
+            key2Pos = self.keymap[bigram[1]]
+            fingerNumber1 = math.floor(key1Pos[0])
+            if (fingerNumber1 == 4):
+                fingerNumber1 -= 1
+            elif (fingerNumber1 == 5):
+                fingerNumber1 -= 1
+            elif (fingerNumber1 >= 6):
+                fingerNumber1 -= 2
+            fingerNumber2 = math.floor(key2Pos[0])
+            if (fingerNumber2 == 4):
+                fingerNumber2 -= 1
+            elif (fingerNumber2 == 5):
+                fingerNumber2 -= 1
+            elif (fingerNumber2 >= 6):
+                fingerNumber2 -= 2
+            
+            # check if they are on opposite sides of the keyboard
+            if (fingerNumber1 >= 4 and fingerNumber2 <= 4) or (fingerNumber1 <= 3 and fingerNumber2 >= 4):
+                bigramFitness += frequency * 0.25
+            else:
+                # same row, fingers one off, and going towards the center
+                if fingerNumber1 == fingerNumber2:
+                    bigramFitness -= frequency
+                else:
+                    # check which hand it is on
+                    if fingerNumber1 <= 3: # left
+                        if fingerNumber2 == fingerNumber1 + 1:
+                            bigramFitness += frequency
+                        elif fingerNumber2 == fingerNumber1 - 1:
+                            bigramFitness += frequency * .5 # still good if they are in order, just less so
+                    else: # right
+                        if fingerNumber2 == fingerNumber1 - 1:
+                            bigramFitness += frequency
+                        elif fingerNumber2 == fingerNumber1 + 1:
+                            bigramFitness += frequency * .5 # still good if they are in order, just less so
+            
+        for (trigram, frequency) in trigramFreqs.items():
+            key1Pos = self.keymap[trigram[0]]
+            key2Pos = self.keymap[trigram[1]]
+            key3Pos = self.keymap[trigram[2]]
+            fingerNumber1 = math.floor(key1Pos[0])
+            if (fingerNumber1 == 4):
+                fingerNumber1 -= 1
+            elif (fingerNumber1 == 5):
+                fingerNumber1 -= 1
+            elif (fingerNumber1 >= 6):
+                fingerNumber1 -= 2
+            fingerNumber2 = math.floor(key2Pos[0])
+            if (fingerNumber2 == 4):
+                fingerNumber2 -= 1
+            elif (fingerNumber2 == 5):
+                fingerNumber2 -= 1
+            elif (fingerNumber2 >= 6):
+                fingerNumber2 -= 2
+            fingerNumber3 = math.floor(key3Pos[0])
+            if (fingerNumber3 == 4):
+                fingerNumber3 -= 1
+            elif (fingerNumber3 == 5):
+                fingerNumber3 -= 1
+            elif (fingerNumber3 >= 6):
+                fingerNumber3 -= 2
+            
+            if fingerNumber1 <= 3: # left hand rolls
+                if (fingerNumber2 == fingerNumber1 + 1) and (fingerNumber3 == fingerNumber2 + 1):
+                    trigramFitness += frequency
+                elif (fingerNumber2 == fingerNumber1 - 1) and (fingerNumber3 == fingerNumber2 - 1):
+                    trigramFitness += frequency * .5 # still good if they are in order, just less so
+            else: # right hand start
+                if (fingerNumber2 == fingerNumber1 - 1) and (fingerNumber3 == fingerNumber2 - 1):
+                    trigramFitness += frequency
+                elif (fingerNumber2 == fingerNumber1 + 1) and (fingerNumber3 == fingerNumber2 + 1):
+                    trigramFitness += frequency * .5 # still good if they are in order, just less so
+                
+            
+        
+        self.fitness = 0.25 * singleKeyFitness + 0.375 * bigramFitness + 0.375 * trigramFitness
+        self.fitness *= 100.0 # to make it a percentage
+
     
     def mutate(self, mutationRate):
         for(key, value) in self.keymap.items():
