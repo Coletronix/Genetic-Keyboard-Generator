@@ -33,31 +33,35 @@ def precalculateSingleKeyFreqs(agent):
         
 def precalculateBigramFreqs(agent):
     global bigramFreqs
+    bigramFreqsTemp = dict()
     for i in range(len(agent.trainingData) - 1):
         bigram = agent.trainingData[i:i+2]
         if bigram[0] == ' ' or bigram[1] == ' ':
             continue
-        if bigram in bigramFreqs.keys():
-            bigramFreqs[bigram] += 1
+        if bigram in bigramFreqsTemp.keys():
+            bigramFreqsTemp[bigram] += 1
         else:
-            bigramFreqs[bigram] = 1
+            bigramFreqsTemp[bigram] = 1
     # normalize
-    for bigram in bigramFreqs.keys():
-        bigramFreqs[bigram] /= (len(agent.trainingData) - 1)
+    for bigram in bigramFreqsTemp.keys():
+        if bigramFreqsTemp[bigram] != 1:
+            bigramFreqs[bigram] = bigramFreqsTemp[bigram] / (len(agent.trainingData) - 1)
 
 def precalculateTrigramFreqs(agent):
     global trigramFreqs
+    trigramFreqsTemp = dict()
     for i in range(len(agent.trainingData) - 2):
         trigram = agent.trainingData[i:i+3]
         if trigram[0] == ' ' or trigram[1] == ' ' or trigram[2] == ' ':
             continue
-        if trigram in trigramFreqs.keys():
-            trigramFreqs[trigram] += 1
+        if trigram in trigramFreqsTemp.keys():
+            trigramFreqsTemp[trigram] += 1
         else:
-            trigramFreqs[trigram] = 1
+            trigramFreqsTemp[trigram] = 1
     # normalize
-    for trigram in trigramFreqs.keys():
-        trigramFreqs[trigram] /= (len(agent.trainingData) - 2)
+    for trigram in trigramFreqsTemp.keys():
+        if trigramFreqsTemp[trigram] != 1:
+            trigramFreqs[trigram] = trigramFreqsTemp[trigram] / (len(agent.trainingData) - 2)
 
 class KeyboardAgent:
     def __init__(self, empty=False, trainingData=''):
@@ -73,7 +77,7 @@ class KeyboardAgent:
                 precalculateSingleKeyFreqs(self)
                 precalculateBigramFreqs(self)
                 precalculateTrigramFreqs(self)
-                print(sorted(trigramFreqs.items(), key=lambda x: x[1], reverse=True))
+                print(sorted(bigramFreqs.items(), key=lambda x: x[1], reverse=True))
             # begin with standard staggered qwerty layout
             self.keymap = {
                 'q' : (0, 0),
@@ -96,6 +100,7 @@ class KeyboardAgent:
                 'k' : (7.25, 1),
                 'l' : (8.25, 1),
                 ';' : (9.25, 1),
+                '\'': (10.25, 1),
                 'z' : (0.75, 2),
                 'x' : (1.75, 2),
                 'c' : (2.75, 2),
@@ -133,12 +138,6 @@ class KeyboardAgent:
             
             if (currentIndex == startingIndex):
                 break
-        
-        # check if the child is one of the parents
-        # if child.keymap == self.keymap:
-        #     child.fitness = self.fitness
-        # if child.keymap == other.keymap:
-        #     child.fitness = other.fitness
         
         return child
     
@@ -344,6 +343,7 @@ class KeyboardAgent:
                 fingerNumber -= 1
             elif (fingerNumber >= 6):
                 fingerNumber -= 2
+            fingerNumber = min(fingerNumber, 7)
             
             # extra point if the key is in the home row, .5 if it is in the top row
             if (keyPos[1] == 1):
@@ -353,15 +353,15 @@ class KeyboardAgent:
                 
             # more points for stronger fingers (index, middle, ring)
             if fingerNumber == 3 or fingerNumber == 4: # index
-                singleKeyFitness += frequency
+                singleKeyFitness += frequency * 0.5
             elif fingerNumber == 2 or fingerNumber == 5: # middle
-                singleKeyFitness += 0.75 * frequency
+                singleKeyFitness += 0.75 * frequency * 0.5
             elif fingerNumber == 1 or fingerNumber == 6: # ring
-                singleKeyFitness += 0.5 * frequency
+                singleKeyFitness += 0.5 * frequency * 0.5
                 
             # penalize for using the center column
             if keyPos[0] >= 4 and keyPos[0] < 6:
-                singleKeyFitness -= .5 * frequency
+                singleKeyFitness -= .5 * frequency * .5
                 
         for (bigram, frequency) in bigramFreqs.items():
             key1Pos = self.keymap[bigram[0]]
@@ -373,6 +373,7 @@ class KeyboardAgent:
                 fingerNumber1 -= 1
             elif (fingerNumber1 >= 6):
                 fingerNumber1 -= 2
+            fingerNumber1 = min(fingerNumber1, 7)
             fingerNumber2 = math.floor(key2Pos[0])
             if (fingerNumber2 == 4):
                 fingerNumber2 -= 1
@@ -380,26 +381,29 @@ class KeyboardAgent:
                 fingerNumber2 -= 1
             elif (fingerNumber2 >= 6):
                 fingerNumber2 -= 2
+            fingerNumber2 = min(fingerNumber2, 7)
             
             # check if they are on opposite sides of the keyboard
             if (fingerNumber1 >= 4 and fingerNumber2 <= 4) or (fingerNumber1 <= 3 and fingerNumber2 >= 4):
-                bigramFitness += frequency * 0.25
+                bigramFitness += frequency
             else:
                 # same row, fingers one off, and going towards the center
-                if fingerNumber1 == fingerNumber2:
-                    bigramFitness -= frequency
+                if fingerNumber1 == fingerNumber2: # same finger
+                    bigramFitness -= frequency * 5
                 else:
                     # check which hand it is on
                     if fingerNumber1 <= 3: # left
-                        if fingerNumber2 == fingerNumber1 + 1:
-                            bigramFitness += frequency
-                        elif fingerNumber2 == fingerNumber1 - 1:
-                            bigramFitness += frequency * .5 # still good if they are in order, just less so
+                        if key1Pos[1] == key2Pos[1]:
+                            if fingerNumber2 == fingerNumber1 + 1:
+                                bigramFitness += frequency
+                            elif fingerNumber2 == fingerNumber1 - 1:
+                                bigramFitness += frequency * .5 # still good if they are in order, just less so
                     else: # right
-                        if fingerNumber2 == fingerNumber1 - 1:
-                            bigramFitness += frequency
-                        elif fingerNumber2 == fingerNumber1 + 1:
-                            bigramFitness += frequency * .5 # still good if they are in order, just less so
+                        if key1Pos[1] == key2Pos[1]:
+                            if fingerNumber2 == fingerNumber1 - 1:
+                                bigramFitness += frequency
+                            elif fingerNumber2 == fingerNumber1 + 1:
+                                bigramFitness += frequency * .5 # still good if they are in order, just less so
             
         for (trigram, frequency) in trigramFreqs.items():
             key1Pos = self.keymap[trigram[0]]
@@ -412,6 +416,7 @@ class KeyboardAgent:
                 fingerNumber1 -= 1
             elif (fingerNumber1 >= 6):
                 fingerNumber1 -= 2
+            fingerNumber1 = min(fingerNumber1, 7)
             fingerNumber2 = math.floor(key2Pos[0])
             if (fingerNumber2 == 4):
                 fingerNumber2 -= 1
@@ -419,6 +424,7 @@ class KeyboardAgent:
                 fingerNumber2 -= 1
             elif (fingerNumber2 >= 6):
                 fingerNumber2 -= 2
+            fingerNumber2 = min(fingerNumber2, 7)
             fingerNumber3 = math.floor(key3Pos[0])
             if (fingerNumber3 == 4):
                 fingerNumber3 -= 1
@@ -426,6 +432,7 @@ class KeyboardAgent:
                 fingerNumber3 -= 1
             elif (fingerNumber3 >= 6):
                 fingerNumber3 -= 2
+            fingerNumber3 = min(fingerNumber3, 7)
             
             if fingerNumber1 <= 3: # left hand rolls
                 if (fingerNumber2 == fingerNumber1 + 1) and (fingerNumber3 == fingerNumber2 + 1):
@@ -440,7 +447,7 @@ class KeyboardAgent:
                 
             
         
-        self.fitness = 0.25 * singleKeyFitness + 0.375 * bigramFitness + 0.375 * trigramFitness
+        self.fitness = 0.5 * singleKeyFitness + 0.4 * bigramFitness + 0.1 * trigramFitness
         self.fitness *= 100.0 # to make it a percentage
 
     
@@ -450,7 +457,7 @@ class KeyboardAgent:
                 swapKeyPos(key, list(self.keymap.keys())[random.randint(0, len(self.keymap)-1)], self.keymap)
     
     def getNumTimesEachFingerUsed(self):
-        numTimesEachFingerUsed = [0, 0, 0, 0, 0, 0, 0, 0]
+        numTimesEachFingerUsed = [0, 0, 0, 0, 0, 0, 0, 0, 0]
         for i in range(0, len(self.trainingData)):
             key = self.trainingData[i]
             ordBetween = (ord(key) >= 97 and ord(key) <= 122)

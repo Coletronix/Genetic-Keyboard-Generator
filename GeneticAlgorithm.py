@@ -79,8 +79,8 @@ def loadFolder(folder):
     return data
 
 # paramters
-trainingDataFolder = 'trainingTextsLarge'
-# trainingDataFolder = 'trainingTextSuperLarge'
+# trainingDataFolder = 'trainingTextsLarge'
+trainingDataFolder = 'trainingTextSuperLarge'
 tournamentSize = 10000
 generationSize = 100
 swapTrainingDataEvery = 40000
@@ -94,13 +94,13 @@ def main():
     trainingData = random.choice(trainingDataOptions)
     trainingData = trainingData.lower()
     # remove all characters according to a regex everything that is not a-z or a space or a slash
-    trainingData = re.sub('[^a-z /.,]', '', trainingData)
+    trainingData = re.sub("[^a-z /.,';]", '', trainingData)
     trainingDataLength = len(trainingData)
     print("Training data new length: " + str(trainingDataLength))
 
     pygame.init()
     font = pygame.font.SysFont('Arial', 30)
-    screen = pygame.display.set_mode((540, 150))
+    screen = pygame.display.set_mode((590, 150))
     clock = pygame.time.Clock()
     
     ga = GeneticAlgorithm(generationSize, initialMutationRate, 3, trainingData=trainingData)
@@ -199,7 +199,7 @@ def main():
         font = pygame.font.SysFont('Arial', 30)
         for (key, position) in chosenAgent.keymap.items():
             if not showHeatmap:
-                if key == trainingData[trainingDataLetterIndex]:
+                if key != trainingData[trainingDataLetterIndex]:
                     keyPos = chosenAgent.keymap[key]
                     fingerNumberRaw = math.floor(keyPos[0])
                     if (fingerNumberRaw == 4):
